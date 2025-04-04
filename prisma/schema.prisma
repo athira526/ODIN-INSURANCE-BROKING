@@ -1,0 +1,34 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id         String       @id @default(uuid())
+  name       String
+  email      String       @unique
+  phone      String
+  policyType String
+  renewal    Boolean
+  createdAt  DateTime     @default(now())
+  
+  quotations Quotation[]  // Relation to Quotation model
+}
+
+model Quotation {
+  id          String    @id @default(uuid())
+  clientId    String    
+  companyName String
+  requestDate DateTime  @default(now())
+  responseDate DateTime? // Nullable, initially empty
+  quoteDetails String
+
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, companyName]) // Prevent duplicate entries for same client & company
+  @@index([clientId]) // 🔹 Improves performance when querying quotations by clientId
+}
