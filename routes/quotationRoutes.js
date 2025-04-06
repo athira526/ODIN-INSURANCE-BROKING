@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const prisma = require("../config/prismaClient"); // Ensure this is correct
+const prisma = require("../config/prismaClient"); // ✅ Ensure correct import
 
 // ✅ GET: Fetch all quotations
 router.get("/", async (req, res) => {
@@ -17,9 +17,8 @@ router.post("/", async (req, res) => {
   try {
     const { clientId, companyName, quoteDetails } = req.body;
 
-    // Check if client exists before creating a quotation
     const existingClient = await prisma.client.findUnique({
-      where: { id: clientId }
+      where: { id: clientId },
     });
 
     if (!existingClient) {
@@ -40,8 +39,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-module.exports = router;
-// Update a quotation (when company responds)
+// ✅ PUT: Update a quotation (e.g., when company responds)
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -57,16 +55,20 @@ router.put("/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-// Update a quotation (when company responds)
-// Delete a quotation
+
+// ✅ DELETE: Remove a quotation
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    await prisma.quotation.delete({ where: { id } });
+    await prisma.quotation.delete({
+      where: { id },
+    });
 
     res.status(204).send(); // No content response
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
+module.exports = router;
