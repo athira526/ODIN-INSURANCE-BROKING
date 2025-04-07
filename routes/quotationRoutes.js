@@ -2,15 +2,18 @@ const express = require("express");
 const router = express.Router();
 const prisma = require("../config/prismaClient"); // ✅ Ensure correct import
 
-// ✅ GET: Fetch all quotations
+// ✅ GET: Fetch all quotations with client info
 router.get("/", async (req, res) => {
   try {
-    const quotations = await prisma.quotation.findMany();
+    const quotations = await prisma.quotation.findMany({
+      include: { client: true }, // 🔥 include client data
+    });
     res.json(quotations);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // ✅ POST: Create a new quotation
 router.post("/", async (req, res) => {
