@@ -3,11 +3,15 @@ const admin = require('firebase-admin');
 
 const prisma = new PrismaClient();
 
-// Initialize Firebase Admin
-admin.initializeApp({
-  credential: admin.credential.applicationDefault(), // Uses Render env vars
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-});
+// Initialize Firebase Admin with service account
+try {
+  admin.initializeApp({
+    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  });
+} catch (error) {
+  console.error('Firebase initialization failed:', error.stack);
+}
 
 const bucket = admin.storage().bucket();
 
@@ -18,34 +22,33 @@ exports.createClient = async (req, res) => {
     let supportingDoc = null;
 
     if (req.file) {
+      console.log('Uploading file:', req.file.originalname);
       const fileName = `clients/${Date.now()}-${req.file.originalname}`;
       const file = bucket.file(fileName);
 
-      // Upload file to Firebase Storage
       await file.save(req.file.buffer, {
         metadata: { contentType: req.file.mimetype },
-        public: true, // Public for now
+        public: true,
       });
 
-      // Get public URL
       supportingDoc = `https://storage.googleapis.com/${process.env.FIREBASE_STORAGE_BUCKET}/${fileName}`;
+      console.log('File uploaded:', supportingDoc);
     }
 
-    // Save to Prisma database
     const client = await prisma.client.create({
       data: {
         name,
         email,
         phone,
         policyType,
-        renewal: renewal === 'true', // Convert string to boolean
-        supportingDoc, // Save the URL
+        renewal: renewal === 'true',
+        supportingDoc,
       },
     });
 
     res.status(201).json(client);
   } catch (error) {
-    console.error('Error creating client:', error);
+    console.error('Detailed error in createClient:', error.stack);
     res.status(500).json({ error: error.message });
   }
 };
@@ -56,6 +59,7 @@ exports.getClients = async (req, res) => {
     const clients = await prisma.client.findMany();
     res.status(200).json(clients);
   } catch (error) {
+    console.error('Error in getClients:', error.stack);
     res.status(500).json({ error: error.message });
   }
 };
@@ -70,6 +74,7 @@ exports.getClientById = async (req, res) => {
     if (!client) return res.status(404).json({ error: 'Client not found' });
     res.status(200).json(client);
   } catch (error) {
+    console.error('Error in getClientById:', error.stack);
     res.status(500).json({ error: error.message });
   }
 };
@@ -85,6 +90,7 @@ exports.updateClient = async (req, res) => {
     });
     res.status(200).json(updatedClient);
   } catch (error) {
+    console.error('Error in updateClient:', error.stack);
     res.status(500).json({ error: error.message });
   }
 };
@@ -96,6 +102,7 @@ exports.deleteClient = async (req, res) => {
     await prisma.client.delete({ where: { id } });
     res.status(204).send();
   } catch (error) {
+    console.error('Error in deleteClient:', error.stack);
     res.status(500).json({ error: error.message });
   }
 };
